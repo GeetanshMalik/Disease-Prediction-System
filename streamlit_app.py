@@ -245,11 +245,7 @@ def calculate_disease_probability(selected_symptoms, disease_name, disease_info)
     return probability
 
 # Initialize
-try:
-    model, symptoms_list = load_model_data()
-except:
-    st.error("⚠️ Please run 'python disease_dataset_generator.py' first to create the model!")
-    st.stop()
+model, symptoms_list, disease_patterns = load_model_data()
 
 # Title and description
 st.markdown("<h1>🏥 AI-Powered Disease Prediction System</h1>", unsafe_allow_html=True)
@@ -376,14 +372,19 @@ if predict_button:
             if symptom in symptoms_list:
                 input_data[symptoms_list.index(symptom)] = 1
         
-        # Make prediction
-        prediction = model.predict([input_data])[0]
-        prediction_proba = model.predict_proba([input_data])[0]
+        # Calculate probabilities using rule-based system
+        disease_probabilities = []
+        for disease_name, disease_info in disease_patterns.items():
+            probability = calculate_disease_probability(selected_symptoms, disease_name, disease_info)
+            if probability > 5:  # Only show if > 5% probability
+                disease_probabilities.append((disease_name, probability))
+        
+        # Sort by probability
+        disease_probabilities.sort(key=lambda x: x[1], reverse=True)
         
         # Get top 3 predictions
-        top_3_indices = np.argsort(prediction_proba)[-3:][::-1]
-        top_3_diseases = [model.classes_[i] for i in top_3_indices]
-        top_3_probabilities = [prediction_proba[i] for i in top_3_indices]
+        top_3_diseases = [d[0] for d in disease_probabilities[:3]]
+        top_3_probabilities = [d[1] for d in disease_probabilities[:3]]
         
         # Display predictions
         st.markdown("### 🏥 Possible Diseases (Ranked by Probability)")
