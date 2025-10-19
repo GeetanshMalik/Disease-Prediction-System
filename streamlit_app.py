@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from disease_info import get_disease_info, get_all_diseases
 
-# Page configuration
 st.set_page_config(
     page_title="AI Disease Prediction System",
     page_icon="🏥",
@@ -12,7 +11,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
 st.markdown("""
     <style>
     .main {
@@ -89,15 +87,166 @@ st.markdown("""
 # Load model and data
 @st.cache_resource
 def load_model_data():
+    import os
+    from sklearn.ensemble import RandomForestClassifier
+    import pandas as pd
+    
+    symptoms_list = [
+        'fever', 'cough', 'fatigue', 'difficulty_breathing', 'sore_throat',
+        'runny_nose', 'headache', 'body_ache', 'chills', 'nausea',
+        'vomiting', 'diarrhea', 'loss_of_taste', 'loss_of_smell', 'chest_pain',
+        'rapid_heartbeat', 'dizziness', 'sweating', 'abdominal_pain', 'bloating',
+        'constipation', 'joint_pain', 'muscle_weakness', 'rash', 'itching',
+        'sneezing', 'watery_eyes', 'wheezing', 'shortness_of_breath', 'back_pain',
+        'frequent_urination', 'burning_urination', 'blood_in_urine', 'weight_loss',
+        'increased_thirst', 'blurred_vision', 'slow_healing', 'anxiety',
+        'depression', 'insomnia', 'loss_of_appetite', 'weight_gain',
+        'swollen_lymph_nodes', 'night_sweats', 'persistent_cough'
+    ]
+    
+    # Enhanced disease patterns with more specific symptom combinations
+    disease_patterns = {
+        'Common Cold': {
+            'primary': ['runny_nose', 'sneezing', 'sore_throat', 'cough'],
+            'secondary': ['headache', 'body_ache', 'fatigue'],
+            'probability': 0.90
+        },
+        'Influenza (Flu)': {
+            'primary': ['fever', 'cough', 'body_ache', 'fatigue', 'chills'],
+            'secondary': ['sore_throat', 'headache', 'muscle_weakness'],
+            'probability': 0.88
+        },
+        'COVID-19': {
+            'primary': ['fever', 'cough', 'fatigue', 'loss_of_taste', 'loss_of_smell'],
+            'secondary': ['difficulty_breathing', 'body_ache', 'headache'],
+            'probability': 0.85
+        },
+        'Allergic Rhinitis': {
+            'primary': ['sneezing', 'runny_nose', 'watery_eyes', 'itching'],
+            'secondary': ['headache'],
+            'probability': 0.92
+        },
+        'Asthma': {
+            'primary': ['wheezing', 'shortness_of_breath', 'difficulty_breathing'],
+            'secondary': ['chest_pain', 'cough'],
+            'probability': 0.90
+        },
+        'Bronchitis': {
+            'primary': ['persistent_cough', 'chest_pain', 'fatigue'],
+            'secondary': ['shortness_of_breath', 'body_ache'],
+            'probability': 0.85
+        },
+        'Gastroenteritis': {
+            'primary': ['diarrhea', 'nausea', 'vomiting', 'abdominal_pain'],
+            'secondary': ['fever', 'loss_of_appetite', 'fatigue'],
+            'probability': 0.88
+        },
+        'Urinary Tract Infection': {
+            'primary': ['burning_urination', 'frequent_urination', 'abdominal_pain'],
+            'secondary': ['blood_in_urine', 'fever', 'back_pain'],
+            'probability': 0.90
+        },
+        'Migraine': {
+            'primary': ['headache', 'nausea'],
+            'secondary': ['vomiting', 'dizziness', 'fatigue'],
+            'probability': 0.87
+        },
+        'Type 2 Diabetes': {
+            'primary': ['increased_thirst', 'frequent_urination', 'fatigue'],
+            'secondary': ['blurred_vision', 'weight_loss', 'slow_healing'],
+            'probability': 0.82
+        },
+        'Hypertension': {
+            'primary': ['headache', 'dizziness'],
+            'secondary': ['chest_pain', 'shortness_of_breath', 'fatigue'],
+            'probability': 0.78
+        },
+        'Anxiety Disorder': {
+            'primary': ['anxiety', 'rapid_heartbeat', 'sweating'],
+            'secondary': ['insomnia', 'fatigue', 'dizziness'],
+            'probability': 0.85
+        },
+        'Depression': {
+            'primary': ['depression', 'fatigue', 'loss_of_appetite', 'insomnia'],
+            'secondary': ['weight_loss', 'body_ache'],
+            'probability': 0.83
+        },
+        'Arthritis': {
+            'primary': ['joint_pain'],
+            'secondary': ['fatigue', 'muscle_weakness', 'back_pain'],
+            'probability': 0.86
+        },
+        'Food Poisoning': {
+            'primary': ['nausea', 'vomiting', 'diarrhea', 'abdominal_pain'],
+            'secondary': ['fever', 'fatigue'],
+            'probability': 0.90
+        }
+    }
+    
+    # Generate comprehensive training data
+    data = []
+    np.random.seed(42)
+    
+    for disease, info in disease_patterns.items():
+        # Generate 200 samples per disease for better accuracy
+        for i in range(200):
+            sample = {s: 0 for s in symptoms_list}
+            
+            # Always include most primary symptoms
+            primary_count = int(len(info['primary']) * info['probability'])
+            for symptom in info['primary'][:max(primary_count, 2)]:
+                if symptom in symptoms_list:
+                    sample[symptom] = 1
+            
+            if np.random.random() < 0.7:  
+                secondary_count = np.random.randint(1, min(3, len(info['secondary']) + 1))
+                selected_secondary = np.random.choice(info['secondary'], 
+                                                     size=min(secondary_count, len(info['secondary'])), 
+                                                     replace=False)
+                for symptom in selected_secondary:
+                    if symptom in symptoms_list:
+                        sample[symptom] = 1
+            
+            for s in symptoms_list:
+                if sample[s] == 0 and np.random.random() < 0.03:
+                    sample[s] = 1
+            
+            if np.random.random() < 0.15 and len(info['primary']) > 2:
+                remove_symptom = np.random.choice(info['primary'])
+                if remove_symptom in symptoms_list:
+                    sample[remove_symptom] = 0
+            
+            sample['disease'] = disease
+            data.append(sample)
+    
+    df = pd.DataFrame(data)
+    X = df.drop('disease', axis=1)
+    y = df['disease']
+    
+    # Train optimized model 
+    model = RandomForestClassifier(
+        n_estimators=100,      # More trees for better accuracy
+        max_depth=15,          # Deeper trees
+        min_samples_split=5,   # Allow more splits
+        min_samples_leaf=2,    # Smaller leaf nodes
+        class_weight='balanced',  # Handle class imbalance
+        random_state=42
+    )
+    model.fit(X, y)
+    
+    # Calculate and display accuracy
+    accuracy = model.score(X, y)
+    
+    
     try:
-        with open('disease_model.pkl', 'rb') as f:
-            model = pickle.load(f)
-        with open('symptoms_list.pkl', 'rb') as f:
-            symptoms_list = pickle.load(f)
-        return model, symptoms_list
-    except FileNotFoundError:
-        st.error("Model files not found! Please run the dataset generator first.")
-        st.stop()
+        with open('disease_model.pkl', 'wb') as f:
+            pickle.dump(model, f)
+        with open('symptoms_list.pkl', 'wb') as f:
+            pickle.dump(symptoms_list, f)
+    except:
+        pass
+    
+    return model, symptoms_list
 
 # Initialize
 try:
@@ -142,7 +291,7 @@ with st.sidebar:
 st.markdown("## Select Your Symptoms")
 st.markdown("Choose all symptoms you are currently experiencing:")
 
-# Create symptom selection in columns
+
 symptom_readable = {
     'fever': '🌡️ Fever',
     'cough': '😷 Cough',
@@ -235,7 +384,7 @@ if predict_button:
         prediction = model.predict([input_data])[0]
         prediction_proba = model.predict_proba([input_data])[0]
         
-        # Get top 3 predictions
+        # top 3 predictions
         top_3_indices = np.argsort(prediction_proba)[-3:][::-1]
         top_3_diseases = [model.classes_[i] for i in top_3_indices]
         top_3_probabilities = [prediction_proba[i] for i in top_3_indices]
@@ -244,7 +393,7 @@ if predict_button:
         st.markdown("### 🏥 Possible Diseases (Ranked by Probability)")
         
         for i, (disease, probability) in enumerate(zip(top_3_diseases, top_3_probabilities)):
-            if probability > 0.05:  # Only show if probability > 5%
+            if probability > 0.05:  
                 with st.container():
                     if i == 0:
                         st.markdown(f"<div class='disease-card'><h3>🥇 Most Likely: {disease}</h3><p>Confidence: {probability*100:.1f}%</p></div>", unsafe_allow_html=True)
@@ -341,6 +490,6 @@ st.markdown("""
     <p>🏥 AI Disease Prediction System | Built with Machine Learning & Streamlit</p>
     <p><small>Trained on comprehensive symptom-disease patterns | Model Accuracy: ~85%</small></p>
     <p><strong>Created by: Geetansh Malik</strong></p>
-    <p style='font-size: 0.9em; margin-top: 0.5rem;'>💻 Developed with ❤️ using Python, Scikit-learn & Streamlit</p>
+    <p style='font-size: 0.9em; margin-top: 0.5rem;'>💻 Developed using Python, Scikit-learn & Streamlit</p>
 </div>
 """, unsafe_allow_html=True)
