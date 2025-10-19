@@ -89,15 +89,87 @@ st.markdown("""
 # Load model and data
 @st.cache_resource
 def load_model_data():
-    try:
-        with open('disease_model.pkl', 'rb') as f:
-            model = pickle.load(f)
-        with open('symptoms_list.pkl', 'rb') as f:
-            symptoms_list = pickle.load(f)
+    import os
+    
+    # Check if model files exist
+    if not os.path.exists('disease_model.pkl') or not os.path.exists('symptoms_list.pkl'):
+        st.info("🔄 Initializing model for the first time... Please wait.")
+        
+        # Generate model inline
+        from sklearn.ensemble import RandomForestClassifier
+        import pandas as pd
+        
+        symptoms_list = [
+            'fever', 'cough', 'fatigue', 'difficulty_breathing', 'sore_throat',
+            'runny_nose', 'headache', 'body_ache', 'chills', 'nausea',
+            'vomiting', 'diarrhea', 'loss_of_taste', 'loss_of_smell', 'chest_pain',
+            'rapid_heartbeat', 'dizziness', 'sweating', 'abdominal_pain', 'bloating',
+            'constipation', 'joint_pain', 'muscle_weakness', 'rash', 'itching',
+            'sneezing', 'watery_eyes', 'wheezing', 'shortness_of_breath', 'back_pain',
+            'frequent_urination', 'burning_urination', 'blood_in_urine', 'weight_loss',
+            'increased_thirst', 'blurred_vision', 'slow_healing', 'anxiety',
+            'depression', 'insomnia', 'loss_of_appetite', 'weight_gain',
+            'swollen_lymph_nodes', 'night_sweats', 'persistent_cough'
+        ]
+        
+        disease_patterns = {
+            'Common Cold': ['runny_nose', 'sneezing', 'sore_throat', 'cough', 'headache'],
+            'Influenza (Flu)': ['fever', 'cough', 'sore_throat', 'body_ache', 'headache', 'fatigue', 'chills'],
+            'COVID-19': ['fever', 'cough', 'fatigue', 'loss_of_taste', 'loss_of_smell', 'difficulty_breathing'],
+            'Allergic Rhinitis': ['sneezing', 'runny_nose', 'watery_eyes', 'itching'],
+            'Asthma': ['wheezing', 'shortness_of_breath', 'chest_pain', 'cough', 'difficulty_breathing'],
+            'Bronchitis': ['persistent_cough', 'chest_pain', 'fatigue', 'shortness_of_breath'],
+            'Gastroenteritis': ['diarrhea', 'nausea', 'vomiting', 'abdominal_pain', 'fever'],
+            'Urinary Tract Infection': ['burning_urination', 'frequent_urination', 'abdominal_pain', 'blood_in_urine'],
+            'Migraine': ['headache', 'nausea', 'vomiting', 'dizziness'],
+            'Type 2 Diabetes': ['increased_thirst', 'frequent_urination', 'fatigue', 'blurred_vision', 'weight_loss'],
+            'Hypertension': ['headache', 'dizziness', 'chest_pain', 'shortness_of_breath'],
+            'Anxiety Disorder': ['anxiety', 'rapid_heartbeat', 'sweating', 'insomnia', 'fatigue'],
+            'Depression': ['depression', 'fatigue', 'loss_of_appetite', 'insomnia'],
+            'Arthritis': ['joint_pain', 'fatigue'],
+            'Food Poisoning': ['nausea', 'vomiting', 'diarrhea', 'abdominal_pain', 'fever']
+        }
+        
+        # Generate training data
+        data = []
+        for disease, symptoms in disease_patterns.items():
+            for _ in range(100):  # 100 samples per disease
+                sample = {s: 0 for s in symptoms_list}
+                for symptom in symptoms:
+                    if symptom in symptoms_list:
+                        sample[symptom] = 1
+                # Add noise
+                for s in symptoms_list:
+                    if sample[s] == 0 and np.random.random() < 0.05:
+                        sample[s] = 1
+                sample['disease'] = disease
+                data.append(sample)
+        
+        df = pd.DataFrame(data)
+        X = df.drop('disease', axis=1)
+        y = df['disease']
+        
+        # Train lightweight model
+        model = RandomForestClassifier(n_estimators=30, max_depth=8, random_state=42)
+        model.fit(X, y)
+        
+        # Save for future use
+        try:
+            with open('disease_model.pkl', 'wb') as f:
+                pickle.dump(model, f)
+            with open('symptoms_list.pkl', 'wb') as f:
+                pickle.dump(symptoms_list, f)
+        except:
+            pass  # If can't save, that's okay
+        
         return model, symptoms_list
-    except FileNotFoundError:
-        st.error("Model files not found! Please run the dataset generator first.")
-        st.stop()
+    
+    # Load existing model
+    with open('disease_model.pkl', 'rb') as f:
+        model = pickle.load(f)
+    with open('symptoms_list.pkl', 'rb') as f:
+        symptoms_list = pickle.load(f)
+    return model, symptoms_list
 
 # Initialize
 try:
