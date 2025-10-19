@@ -204,41 +204,44 @@ def load_model_data():
 def calculate_disease_probability(selected_symptoms, disease_name, disease_info):
     """Calculate probability based on symptom matching with medical logic"""
     score = 0
-    max_score = 0
+    total_possible = 0
     
-    # Check mandatory symptoms (CRITICAL)
+    # Check mandatory symptoms (CRITICAL - 40 points)
     mandatory_count = sum(1 for s in disease_info['mandatory'] if s in selected_symptoms)
     mandatory_total = len(disease_info['mandatory'])
     
     if mandatory_total > 0:
-        mandatory_match = mandatory_count / mandatory_total
-        if mandatory_match < 0.5:  # Less than 50% of mandatory symptoms
-            return 0  # Not this disease
-        score += mandatory_match * 50  # 50 points max
-        max_score += 50
+        if mandatory_count == 0:
+            return 0  # No mandatory symptoms = not this disease
+        mandatory_score = (mandatory_count / mandatory_total) * 40
+        score += mandatory_score
+        total_possible += 40
     
-    # Check exclusion symptoms (if present, reduce probability significantly)
+    # Check exclusion symptoms (if present, heavy penalty)
     exclusion_count = sum(1 for s in disease_info['exclude'] if s in selected_symptoms)
     if exclusion_count > 0:
-        score -= exclusion_count * 20  # Heavy penalty
+        score -= exclusion_count * 15  # Penalty per exclusion symptom
     
-    # Check strong indicators (IMPORTANT)
+    # Check strong indicators (IMPORTANT - 35 points)
     strong_count = sum(1 for s in disease_info['strong'] if s in selected_symptoms)
     strong_total = len(disease_info['strong'])
     if strong_total > 0:
-        score += (strong_count / strong_total) * 30  # 30 points max
-        max_score += 30
+        strong_score = (strong_count / strong_total) * 35
+        score += strong_score
+        total_possible += 35
     
-    # Check supporting symptoms (HELPFUL)
+    # Check supporting symptoms (HELPFUL - 25 points)
     supporting_count = sum(1 for s in disease_info['supporting'] if s in selected_symptoms)
     supporting_total = len(disease_info['supporting'])
     if supporting_total > 0:
-        score += (supporting_count / supporting_total) * 20  # 20 points max
-        max_score += 20
+        supporting_score = (supporting_count / supporting_total) * 25
+        score += supporting_score
+        total_possible += 25
     
-    # Normalize to percentage
-    if max_score > 0:
-        probability = max(0, min(100, (score / max_score) * 100))
+    # Calculate final percentage
+    if total_possible > 0:
+        probability = (score / total_possible) * 100
+        probability = max(0, min(100, probability))  # Cap between 0-100
     else:
         probability = 0
     
@@ -376,26 +379,30 @@ if predict_button:
         disease_probabilities = []
         for disease_name, disease_info in disease_patterns.items():
             probability = calculate_disease_probability(selected_symptoms, disease_name, disease_info)
-            if probability > 5:  # Only show if > 5% probability
+            if probability > 10:  # Only show if > 10% probability
                 disease_probabilities.append((disease_name, probability))
         
         # Sort by probability
         disease_probabilities.sort(key=lambda x: x[1], reverse=True)
         
-        # Get top 3 predictions
-        top_3_diseases = [d[0] for d in disease_probabilities[:3]]
-        top_3_probabilities = [d[1] for d in disease_probabilities[:3]]
+        # Always show top 3 (or all if less than 3)
+        if len(disease_probabilities) == 0:
+            st.warning("⚠️ No strong disease match found. Please consult a doctor for proper diagnosis.")
+        else:
+            # Get top 3 predictions
+            top_predictions = disease_probabilities[:min(3, len(disease_probabilities))]
+            top_3_diseases = [d[0] for d in top_predictions]
+            top_3_probabilities = [d[1] for d in top_predictions]
         
         # Display predictions
         st.markdown("### 🏥 Possible Diseases (Ranked by Probability)")
         
         for i, (disease, probability) in enumerate(zip(top_3_diseases, top_3_probabilities)):
-            if probability > 0.05:  # Only show if probability > 5%
-                with st.container():
-                    if i == 0:
-                        st.markdown(f"<div class='disease-card'><h3>🥇 Most Likely: {disease}</h3><p>Confidence: {probability*100:.1f}%</p></div>", unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"<div class='info-section'><h4>#{i+1}: {disease}</h4><p>Confidence: {probability*100:.1f}%</p></div>", unsafe_allow_html=True)
+            with st.container():
+                if i == 0:
+                    st.markdown(f"<div class='disease-card'><h3>🥇 Most Likely: {disease}</h3><p>Confidence: {probability:.1f}%</p></div>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"<div class='info-section'><h4>#{i+1}: {disease}</h4><p>Confidence: {probability:.1f}%</p></div>", unsafe_allow_html=True)
                     
                     # Get disease information
                     disease_info = get_disease_info(disease)
