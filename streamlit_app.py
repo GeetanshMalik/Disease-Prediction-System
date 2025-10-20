@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# CSS
 st.markdown("""
     <style>
     .main {
@@ -86,12 +86,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Comprehensive Disease Knowledge Base
+# Disease Knowledge Base
 @st.cache_resource
 def load_disease_knowledge():
     """Load comprehensive disease-symptom knowledge base"""
     
-    # Complete symptom list
+    # symptom list
     symptoms_list = [
         'fever', 'cough', 'fatigue', 'difficulty_breathing', 'sore_throat',
         'runny_nose', 'headache', 'body_ache', 'chills', 'nausea',
@@ -105,7 +105,6 @@ def load_disease_knowledge():
         'swollen_lymph_nodes', 'night_sweats', 'persistent_cough'
     ]
     
-    # Professional medical knowledge base with weighted symptoms
     disease_knowledge = {
         'Common Cold': {
             'critical': {'runny_nose': 10, 'sneezing': 10, 'sore_throat': 9},
@@ -214,7 +213,7 @@ def calculate_disease_match(selected_symptoms, disease_name, disease_data):
                 if symptom in selected_symptoms:
                     score += weight
     
-    # Apply negative scoring for conflicting symptoms
+    # negative scoring for conflicting symptoms
     if 'negative' in disease_data:
         for symptom, penalty in disease_data['negative'].items():
             if symptom in selected_symptoms:
@@ -267,7 +266,7 @@ with st.sidebar:
 st.markdown("## Select Your Symptoms")
 st.markdown("Choose all symptoms you are currently experiencing:")
 
-# Symptom selection with better organization
+# Symptom selection 
 symptom_readable = {
     'fever': '🌡️ Fever',
     'cough': '😷 Cough',
@@ -316,7 +315,6 @@ symptom_readable = {
     'persistent_cough': '😷 Persistent Cough (>3 weeks)'
 }
 
-# Create 3 columns for symptom checkboxes
 cols = st.columns(3)
 selected_symptoms = []
 
@@ -341,7 +339,6 @@ if predict_button:
         st.markdown("---")
         st.markdown("## 🎯 Prediction Results")
         
-        # Show selected symptoms
         with st.expander("📝 Selected Symptoms", expanded=True):
             symptoms_text = ", ".join([symptom_readable[s] for s in selected_symptoms])
             st.write(symptoms_text)
@@ -461,6 +458,7 @@ st.markdown("""
     <p>🏥 AI Disease Prediction System | Built with Advanced Medical AI</p>
     <p><small>Professional medical knowledge base with weighted symptom analysis</small></p>
     <p><strong>Created by: Geetansh Malik</strong></p>
-    <p style='font-size: 0.9em; margin-top: 0.5rem;'>💻 Developed with ❤️ using Python & Streamlit</p>
+    <p style='font-size: 0.9em; margin-top: 0.5rem;'>💻 Developed using Python & Streamlit</p>
 </div>
 """, unsafe_allow_html=True)
+
