@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 import pickle
 
-# Create comprehensive symptom-disease dataset
+# symptom-disease dataset
 symptoms_list = [
     'fever', 'cough', 'fatigue', 'difficulty_breathing', 'sore_throat',
     'runny_nose', 'headache', 'body_ache', 'chills', 'nausea',
@@ -87,7 +87,7 @@ data = []
 np.random.seed(42)
 
 for disease, info in disease_patterns.items():
-    # Generate 150 samples per disease for robust training
+    # Generate 150 samples per disease for training
     for _ in range(150):
         sample = {symptom: 0 for symptom in symptoms_list}
         
@@ -142,4 +142,5 @@ with open('symptoms_list.pkl', 'wb') as f:
     pickle.dump(symptoms_list, f)
 
 print("\nModel and data saved successfully!")
+
 print("Files created: disease_dataset.csv, disease_model.pkl, symptoms_list.pkl")
